@@ -1,0 +1,39 @@
+stav.Rabotnik
+Ime str required=True
+Prezime str required=True
+Adresa txt
+Tel phone
+
+stav.PlataZaMesec
+Rabotnik ref Rabotnik required=True
+Plata float required=True
+Datum date required=True
+
+stav.Rezija
+Rabotnik ref Rabotnik required=True
+Saati int default=1 required=True
+Data date 
+ 
+stav.Operacija
+Ime str required=True
+Cena float required=True
+ValidnaDo date
+
+stav.Nalog
+Ime str
+Donesen date
+Start date
+Kraj date
+Operacii list item_type=db.Key
+
+stav.Partija
+PartijaID int
+BrojKomadi int
+Nalog ref Nalog
+
+stav.Rabota
+Rabotnik ref Rabotnik
+Nalog ref Nalog
+Operacija ref Operacija
+BrojKomadi int
+Datum date
