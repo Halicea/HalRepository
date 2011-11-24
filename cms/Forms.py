@@ -3,7 +3,7 @@ __author__ = 'KMihajlov'
 from google.appengine.ext.db.djangoforms import ModelForm
 from django.forms import Form, BaseForm, fields, widgets
 from django.forms.extras import widgets as extras
-from Models.CMSModels import *
+from models.cmsModels import *
 #{%endblock%}
 
 class CMSContentForm(Form):
@@ -12,9 +12,4 @@ class CMSContentForm(Form):
     Title = fields.CharField(required=True)
     Content = fields.CharField(widget=widgets.Textarea(), required=True)
     Tags = fields.CharField(required=False)
-    
-class CommentForm(ModelForm):
-    Content = fields.CharField(widget=widgets.HiddenInput)
-    class Meta():
-        model=Comment
 ##End Comment

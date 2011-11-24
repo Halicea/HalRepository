@@ -1,23 +1,18 @@
 import yaml
 from lib.halicea.decorators import *
-import Models.CMSModels as cms
-from Controllers.BaseControllers import LoginController
+import models.cmsModels as cms
+from controllers.BaseControllers import LoginController
 from lib.halicea.HalRequestHandler import HalRequestHandler as hrh
-from Forms.CMSForms import CMSContentForm
-from google.appengine.api import memcache
+from forms.cmsForms import CMSContentForm
 from google.appengine.ext import db
 from lib import messages
 from django.utils import simplejson
-from Models.CMSModels import Comment, ContentTag
-from Forms.CMSForms import CommentForm
-import logging
-
 
 class CMSBaseController(hrh):
     def __init__(self, *args, **kwargs):
         super(CMSBaseController, self).__init__(*args, **kwargs)
         self.extra_context={'tags':cms.ContentTag.all().order('-Count').fetch(10, 0)}
-        
+
 class CMSLinksController(CMSBaseController):
     def __init__(self, *args, **kwargs):
         super(CMSLinksController, self).__init__(*args, **kwargs)
@@ -26,16 +21,23 @@ class CMSLinksController(CMSBaseController):
     def SetOperations(self):pass
     @AdminOnly()
     @View(templateName='CMSLinks.html')
-    def index(self, *args):
+    def index(self, menu='cms',*args):
         limit = 100
-        offset = 0 
+        offset = 0
         try:
             offset = int(self.params.offset)
         except:
             pass
-        cmsLinks = cms.CMSLink.GetLinkTree()
+        resultMenu = cms.Menu.get_by_key_name(menu)
+        if not resultMenu:
+            root = cms.CMSLink.get_or_insert(
+                         key_name = menu, 
+                         AddressName=menu, Name=menu, 
+                         Creator=self.User, ContentTypeNumber=2)
+            resultMenu = cms.Menu.CreateFromLinkRoot(menu, 'None', None, root, True) 
+        
         contents = cms.CMSContent.all().order('-DateCreated').fetch(limit=limit, offset=offset)
-        return {'cmsLinks':cmsLinks, 'contents':contents}
+        return {'menu':resultMenu, 'contents':contents, 'menus':cms.Menu.all()}
     @AdminOnly()
     def save(self, *args):
         addressName = self.params.addressName
@@ -46,32 +48,54 @@ class CMSLinksController(CMSBaseController):
         else:
             parent = None
         order= int(self.g('order'))
-        content=self.params.content
+        content=self.params.content or None
+        contentType = cms.ContentType.StaticPage
         if content:
             content = cms.CMSContent.get(content)
+            contentType=cms.ContentType.CMSPage
+        if not self.params.HasContent:
+            contentType = cms.ContentType.NoContent
         creator= self.User
         if True: #TODO: validation
-            cms.CMSLink.CreateNew2(addressName, name, parent, order, content, creator, _isAutoInsert=True)
+            cms.CMSLink.CreateNew2(addressName, name, parent, order, content, contentType, creator, _isAutoInsert=True)
         
-        if self.isAjax: 
-            return "Links Created"
+        if self.isAjax:
+            return self.LinksTree(self.params.menu)
         else:
             return self.index()
     @AdminOnly()
     def delete(self, *args):
         lnk=cms.CMSLink.get(self.params.key)
         if lnk:
-            if lnk.Content.content_cms_links.count()==1:
+            if lnk.Content and lnk.Content.content_cms_links.count()==1:
                 lnk.Content.delete()
             lnk.delete()
             self.status='Link is deleted'
-            self.redirect(self.get_url())
         else:
             self.status="Link is invalid";
-            self.redirect(self.get_url())
-    def LinksTree(self):
-        return {'cmsLinks':cms.CMSLink.GetLinkTree()}
+        return self.isAjax and self.status or self.redirect(self.get_url())
 
+    def LinksTree(self, menu):
+        return cms.Menu.get_by_key_name(menu).to_list()
+    
+class MenuController(CMSBaseController):
+    def __init__(self, *args, **kwargs):
+        super(MenuController, self).__init__(*args, **kwargs)
+    @ClearDefaults()
+    @Default('view')
+    @Handler('index')
+    def SetOperations(self):pass
+    
+    @CachedResource()
+    def view(self, menu='cms'): 
+        result=  cms.Menu.get_by_key_name(menu)
+        if result:
+            return result.to_list(self.params)
+        else:
+            return "No Menu Found"
+    def index(self):
+        return {'menus':cms.Menu.all()}
+    
 class CMSContentController(CMSBaseController):
     def __init__(self, *args, **kwargs):
         super(CMSContentController, self).__init__(*args, **kwargs)
@@ -80,25 +104,25 @@ class CMSContentController(CMSBaseController):
     @Handler('my_contents')
     def SetOperations(self):pass
 
-    
+
     def view(self, key, *args):
         cnt = cms.CMSContent.get(key)
         if cnt: return {'content':cnt}
         self.status = "Content Not Found"
         self.redirect('/cms/contents')
-        
+
 
     @View(templateName = 'CMSContent.html')
     def index(self, *args):
         limit = 10
-        offset = 0 
+        offset = 0
         try:
             offset = int(self.params.offset)
         except:
             pass
         contents = cms.CMSContent.all().order('-DateCreated').fetch(limit=limit, offset=offset)
         return {'contents':contents}
-    
+
     @LogInRequired()
     @View(templateName = "CMSContent.html")
     def my_contents(self):
@@ -131,7 +155,7 @@ class CMSContentController(CMSBaseController):
                     cms.ContentTag.IncrementTag(tag)
                 for tag in tags_to_remove:
                     cms.ContentTag.DecrementTag(tag)
-                    
+
             #map(ContentTag.IncrementTag, tags)
             #cms.
             self.status ="Content is saved"
@@ -145,11 +169,11 @@ class CMSContentController(CMSBaseController):
         cmsContent =None
         if key:
             cmsContent = cms.CMSContent.get(key)
-            self.ContentForm = CMSContentForm(initial={'Title':cmsContent.Title, 
-                                                       'Content':cmsContent.HTMLContent, 
+            self.ContentForm = CMSContentForm(initial={'Title':cmsContent.Title,
+                                                       'Content':cmsContent.HTMLContent,
                                                        'Tags':','.join([str(x) for x in cmsContent.Tags])})
-            
-            
+
+
         self.extra_context['op']=key and 'update' or 'insert'
         return {'content':cmsContent, 'CMSContentForm':self.ContentForm}
 
@@ -174,7 +198,7 @@ class CMSPageController(CMSBaseController):
     @Default('index')
     @Handler('view', 'view')
     def SetOperations(self):pass
-    
+
     def view(self, pagepath):
         lnk = cms.CMSLink.GetLinkByPath(pagepath)
         if lnk:
@@ -204,7 +228,7 @@ class CommentController(CMSBaseController):
 
     @Default('save')
     def SetOperations(self): pass
-    
+
     def save(self, key):
         if self.params.Comment:
             Comment.CreateNew(self.params.Comment, self.User, cms.CMSContent.get(key), _isAutoInsert=True)
@@ -215,7 +239,7 @@ class CommentController(CMSBaseController):
             simplejson.dumps({'status':self.status})
         else:
             self.redirect(CMSContentController.get_url(), permanent=True)
-    
+
     def delete(self,*args):
         if self.params.key:
             item = Comment.get(self.params.key)
@@ -237,7 +261,7 @@ class CommentController(CMSBaseController):
         except:
             pass
         nextIndex = index+count;
-        previousIndex = index<=0 and -1 or (index-count>0 and 0 or index-count) 
+        previousIndex = index<=0 and -1 or (index-count>0 and 0 or index-count)
         result = {'CommentList': Comment.all().fetch(limit=count, offset=index)}
         result.update(locals())
         return result
