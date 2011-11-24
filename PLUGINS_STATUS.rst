@@ -63,4 +63,8 @@ Plugins List
     7. LWConnect
 
         - To see if there is something interesting in it
-
+    8. HalDict
+        - Electronic Dictionary with ability to add multiple languages and 
+          multiple dictionaries for all of them
+        - Priority: **high**
+          
