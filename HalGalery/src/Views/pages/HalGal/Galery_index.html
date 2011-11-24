@@ -1,0 +1,11 @@
+{% extends base %}
+{% block scripts %}
+{{block.super}}
+<script src="/jscripts/galleria/galleria-1.2.5.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id='GaleryForm_index' class="post">
+{%include GaleryForm_index  %}
+</div>
+{% endblock %}

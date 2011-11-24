@@ -1,0 +1,24 @@
+<div class="postHeader"><h1>Galery: </h1></div>
+<div class="postContent">
+<table>
+{% for p in Galery.galery_albums.all %}
+    <tr>
+        <td style="text-align:right;">
+            p.Name
+        </td>
+        <td>
+            p.Description
+        </td>
+        <td>
+        	Edit | View
+        </td>
+    <tr>
+{% endfor %}
+</table>
+</div>
+<div class="postFooter">
+<div class="nav">
+<a href='{%url GaleryController%}?op=edit&key={{Galery.key}}'>Edit</a>
+<a href='{%url GaleryController%}'>Home</a>
+</div>
+</div>

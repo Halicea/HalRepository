@@ -1,0 +1,7 @@
+HalGal.PicasaGalery
+Name str required=True
+Description txt	
+DateCreated date auto_now_add=True
+PicasaAlbumUrl link
+
+	

@@ -1,0 +1,28 @@
+<div class="postHeader"><h1>Album: </h1></div>
+<div class="postContent">
+    <form id='AlbumForm' method='post' action='{% url AlbumController %}'>
+        <input type='hidden' name='op' value={{op}}>
+        <input type='hidden' name='key' value={{AlbumForm.instance.key}}></input>
+        <table>
+        {% for field in AlbumForm %}
+            <tr>
+                <td style="text-align:right;">
+                    {{ field.label_tag }}:
+                </td>
+                <td>
+                    {{ field }}
+                </td>
+                <td style='color: red;'>
+                    {{ field.errors }}
+                </td>
+            <tr>
+        {% endfor %}
+        </table>
+        <input type='submit' value={%if AlbumForm.instance.key%} 'Update' {% else %} 'Create' {%endif%}></input>
+    </form>
+</div>
+<div class="postFooter">
+    <div class="nav">
+    <a href='{%url AlbumController%}'>Back</a>
+    </div>
+</div>

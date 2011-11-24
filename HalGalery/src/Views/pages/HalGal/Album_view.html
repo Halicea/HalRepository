@@ -1,0 +1,23 @@
+{% extends base %}
+{% block scripts %}
+{{block.super}}
+<script src="/jscripts/galleria/galleria-1.2.5.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div id='Album_view' class="post">
+{%comment%}include GaleryForm_index{%endcomment %}
+<div id="gallery">
+	{%for pic in feed%}
+		<img src="{{pic.src}}" alt="{{pic.description}}" title={{pic.album}}/>
+	{%endfor%}
+</div>
+<script>
+     Galleria.loadTheme('/jscripts/galleria/themes/classic/galleria.classic.min.js');
+     $("#gallery").galleria({
+         width: 680,
+         height: 500
+     });
+</script>
+</div>
+{% endblock %}
